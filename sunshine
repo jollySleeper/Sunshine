@@ -1,0 +1,117 @@
+#!/bin/bash
+
+# Making a shell program for switching themes
+CONF_DIR="$HOME/.config"
+SUNSHINE_CONF_DIR="$CONF_DIR/sunshine"
+
+sourceConfig () {
+    if [ -f "$SUNSHINE_CONF_DIR/sunshine.conf" ]; then
+        source "$SUNSHINE_CONF_DIR/sunshine.conf"
+    else
+        echo "Config File Not Found using 6:00 and 18:00 as Default"
+    fi
+}
+
+setLightsOn () {
+    if [[ ! -n "$LIGHTS_ON" ]] || [[ $LIGHTS_ON != $(date --date="$LIGHTS_ON" +%H:%M) ]]; then
+        echo "Invalid Date or Date not Provided for LIGHTS_ON !!!"
+        LIGHTS_ON="06:00"
+    fi
+    echo "Making Light Mode Turn On at $LIGHTS_ON"
+}
+
+setLightsOff () {
+    if [[ ! -n "$LIGHTS_OFF" ]] || [[ $LIGHTS_OFF != $(date --date="$LIGHTS_OFF" +%H:%M) ]]; then
+        echo "Invalid Date or Date not Provided for LIGHTS_OFF !!!"
+        LIGHTS_OFF="18:00"
+    fi
+    echo "Making Light Mode Turn Off at $LIGHTS_OFF"
+}
+
+if [[ $1 == "init" ]]; then
+    if [ ! -f "$CONF_DIR/systemd/user/" ]; then
+        mkdir -p "$CONF_DIR/systemd/user/" 
+    fi
+    
+    # Making Systemd Service
+    SERVICE=$CONF_DIR/systemd/user/sunshine.service
+    if [ -f "$SERVICE" ]; then
+        systemctl --user disable sunshine.service
+        rm "$SERVICE" 
+    fi
+    echo "Making Sunshine Service File"
+    printf "[Unit]\nDescription=Sunshine: Schedules Light/Dark Mode" > $SERVICE
+    printf "\n\n[Service]\nType=Simple\nExecStart=%%h/.local/bin/sunshine service" >> $SERVICE 
+    printf "\n\n[Install]\nWantedBy=default.target" >> $SERVICE 
+    echo "Enabling and Starting Sunshine Service File"
+    systemctl --user enable sunshine.service
+    systemctl --user start sunshine.service
+    
+    # Making Systemd Timer
+    ## Reading Config File for Times
+    sourceConfig
+
+    ## Making sure that Times are Correct
+    setLightsOn
+    setLightsOff
+
+    TIMER=$CONF_DIR/systemd/user/sunshine.timer
+    if [ -f "$TIMER" ]; then
+        systemctl --user disable sunshine.timer
+        rm "$TIMER" 
+    fi
+    echo "Making Sunshine Timer File"
+    printf "[Unit]\nDescription=Sunshine: Schedules Light/Dark Mode" > $TIMER
+    printf "\n\n[Timer]\nOnCalendar=*-*-* $LIGHTS_ON:00\nOnCalendar=*-*-* $LIGHTS_OFF:00" >> $TIMER
+    printf "\nPersistent=true\nUnit=sunshine.service" >> $TIMER
+    printf "\n\n[Install]\nWantedBy=timers.target" >> $TIMER
+    echo "Enabling and Starting Sunshine Timer File"
+    systemctl --user enable sunshine.timer
+    systemctl --user start sunshine.timer
+
+    #Run for the First Time
+    sunshine service
+
+elif [[ $1 == "service" ]]; then
+    ## Reading Config File for Times
+    sourceConfig
+
+    ## Making sure that Times are Correct
+    setLightsOn
+    setLightsOff
+
+    HOUR=$(date "+%H")
+    MIN=$(date "+%M")
+    LIGHTS_ON_H=$(date --date="$LIGHTS_ON" +%H)
+    LIGHTS_ON_M=$(date --date="$LIGHTS_ON" +%M)
+    LIGHTS_OFF_H=$(date --date="$LIGHTS_OFF" +%H)
+    LIGHTS_OFF_M=$(date --date="$LIGHTS_OFF" +%M)
+
+    if [[ $LIGHTS_OFF_H < $LIGHTS_ON_H ]] ||
+        [[ $LIGHTS_OFF_H == $LIGHTS_ON_H && $LIGHTS_OFF_M < $LIGHTS_ON_M ]]; 
+    then
+        LIGHTS_OFF_H=$(( $LIGHTS_OFF_H + 24 ))
+    fi
+
+    if [[ $HOUR > $LIGHTS_ON_H || ($HOUR == $LIGHTS_ON_H && $MIN -ge $LIGHTS_ON_M) ]] &&
+        [[ $HOUR < $LIGHTS_OFF_H || ($HOUR == $LIGHTS_OFF_H && $MIN < $LIGHTS_OFF_M) ]];
+    then
+        if [ -f "$SUNSHINE_CONF_DIR/light.sh" ]; then
+            echo "Sourcing light.sh"
+            source "$SUNSHINE_CONF_DIR/light.sh"
+        else
+            echo "light.sh File Not Found In '$SUNSHINE_CONF_DIR'. Try Again!!" 
+        fi
+    else
+        if [ -f "$SUNSHINE_CONF_DIR/dark.sh" ]; then
+            echo "Sourcing dark.sh"
+            source "$SUNSHINE_CONF_DIR/dark.sh"
+        else
+            echo "dark.sh File Not Found In '$SUNSHINE_CONF_DIR'. Try Again!!" 
+        fi
+    fi 
+else
+    echo -e "Usage \n   sunshine init #For Initializing Sunshine"
+    echo -e "   sunshine service #For Changing Themes based on Time"
+fi 
+
