@@ -28,6 +28,18 @@ setLightsOff () {
     echo "Making Light Mode Turn Off at $LIGHTS_OFF"
 }
 
+send_notification () {
+    local SVG;
+    SVG="$HOME/.local/share/icons/sun-with-face.svg"
+    if command -v "notify-send" &> /dev/null; then
+        if [[ -f $SVG ]]; then
+            notify-send -i "$SVG" "Sunshine" "$*"
+        else
+            notify-send -i "" "Sunshine" "$*"
+        fi
+    fi
+}
+
 if [[ $1 == "init" ]]; then
     if [ ! -f "$CONF_DIR/systemd/user/" ]; then
         mkdir -p "$CONF_DIR/systemd/user/" 
@@ -99,6 +111,7 @@ elif [[ $1 == "service" ]]; then
         if [ -f "$SUNSHINE_CONF_DIR/light.sh" ]; then
             echo "Sourcing light.sh"
             source "$SUNSHINE_CONF_DIR/light.sh"
+            send_notification "Light Mode Activated till $LIGHTS_OFF"
         else
             echo "light.sh File Not Found In '$SUNSHINE_CONF_DIR'. Try Again!!" 
         fi
@@ -106,6 +119,7 @@ elif [[ $1 == "service" ]]; then
         if [ -f "$SUNSHINE_CONF_DIR/dark.sh" ]; then
             echo "Sourcing dark.sh"
             source "$SUNSHINE_CONF_DIR/dark.sh"
+            send_notification "Dark Mode Activated till $LIGHTS_ON"
         else
             echo "dark.sh File Not Found In '$SUNSHINE_CONF_DIR'. Try Again!!" 
         fi
