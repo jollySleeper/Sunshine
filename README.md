@@ -8,6 +8,8 @@ Sunshine automates theme switching based on day of the time set by the user.
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Uninstall](#uninstall)
+- [Bugs or Requests](#bugs-or-requests)
 - [Contributing](#contributing)
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
