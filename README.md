@@ -58,7 +58,7 @@ gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
 
 - After Setting up everything just run `sunshine init` on your terminal. Check `sunshine --help` for more info.
 
-- Checkout My [Dotfiles](https://github.com/jollySleeper/dotfiles.git) for more help on config.
+- Checkout My [Dotfiles](https://github.com/jollySleeper/Dotfiles/tree/main/sunshine/.config/sunshine) for more help on config.
 
 ## 🗑️ Uninstall
 
